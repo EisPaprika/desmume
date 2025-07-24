@@ -26,7 +26,7 @@ dep_osmesa = dependency('osmesa', required: false)
 dep_egl = dependency('egl', required: false)
 
 # XXX: something wrong with this one.
-#dep_lua = dependency('lua-5.1', required: false)
+dep_lua = dependency('lua-5.1', required: false)
 
 if get_option('wifi')
   add_global_arguments('-DEXPERIMENTAL_WIFI_COMM', language: ['c', 'cpp'])
@@ -311,12 +311,12 @@ if dep_agg.found()
 endif
 
 # TODO: fix Lua on ¬Windows.
-#if dep_lua.found()
-#  dependencies += dep_lua
-#  libdesmume_src += [
-#    '../../lua-engine.cpp',
-#  ]
-#endif
+if dep_lua.found()
+  dependencies += dep_lua
+  libdesmume_src += [
+    '../../lua-engine.cpp',
+  ]
+endif
 
 if get_option('gdb-stub')
   add_global_arguments('-DGDB_STUB', language: ['c', 'cpp'])

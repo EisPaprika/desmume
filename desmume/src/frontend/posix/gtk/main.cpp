@@ -92,6 +92,9 @@
 
 #include "config.h"
 
+//TODO move to ./tools/execLua*
+#include "lua-engine.h"
+
 #undef GPOINTER_TO_INT
 #define GPOINTER_TO_INT(p) ((gint)  (glong) (p))
 
@@ -152,6 +155,14 @@ static void RecordAV_x264(GSimpleAction *action, GVariant *parameter, gpointer u
 static void RecordAV_flac(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 static void RecordAV_stop(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 static void RedrawScreen();
+
+//TODO move to ./tools/execLua*
+static void ExecLuaDialog(GSimpleAction *action, GVariant *parameter, gpointer user_data);
+static void on_play_clicked(GtkButton *button, gpointer user_data);
+static void on_stop_clicked(GtkButton *button, gpointer user_data);
+void OnStop(int hDlgAsInt, bool statusOK);
+void OnStart(int hDlgAsInt);
+void PrintToWindowConsole(int hDlgAsInt, const char* str);
 
 static void DoQuit(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 static void RecordMovieDialog(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -294,7 +305,8 @@ static const GActionEntry app_entries[] = {
 
     // Tools
     // Populated in desmume_gtk_menu_tools().
-
+    //TODO move to ./tools/execLua*
+    { "execlua", ExecLuaDialog},
     // Help
     { "about",         About },
 };
@@ -1941,6 +1953,80 @@ static void SetAudioVolume(GSimpleAction *action, GVariant *parameter, gpointer 
 			break;
 	}
 	gtk_widget_destroy(dialog);
+}
+
+/////////////////////////////// EXEC LUA SCRIPT //////////////////////////////////////
+//TODO move to ./tools/execLua*
+static void ExecLuaDialog(GSimpleAction *action, GVariant *parameter, gpointer user_data) {
+    GtkWidget *window;
+    GtkWidget *vbox;
+    GtkWidget *file_chooser;
+    GtkWidget *hbox;
+    GtkWidget *play_button;
+    GtkWidget *stop_button;
+
+    // Fenster erstellen
+    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(window), "Execute Lua Script");
+    gtk_window_set_default_size(GTK_WINDOW(window), 500, 100);
+    gtk_container_set_border_width(GTK_CONTAINER(window), 10);
+
+    // Vertikale Box als Layout
+    vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_container_add(GTK_CONTAINER(window), vbox);
+
+    // Dateiauswahl-Button (nur Dateien)
+    file_chooser = gtk_file_chooser_button_new("Choose Lua script", GTK_FILE_CHOOSER_ACTION_OPEN);
+    gtk_box_pack_start(GTK_BOX(vbox), file_chooser, FALSE, FALSE, 0);
+
+    // Horizontalbox für Buttons
+    hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
+
+    // Play-Button
+    play_button = gtk_button_new_with_label("Run");
+    gtk_box_pack_start(GTK_BOX(hbox), play_button, TRUE, TRUE, 0);
+    g_signal_connect(play_button, "clicked", G_CALLBACK(on_play_clicked), file_chooser);
+    // Stop-Button
+    stop_button = gtk_button_new_with_label("Stop");
+    gtk_box_pack_start(GTK_BOX(hbox), stop_button, TRUE, TRUE, 0);
+    g_signal_connect(stop_button, "clicked", G_CALLBACK(on_stop_clicked), file_chooser);
+    gtk_widget_show_all(window);
+}
+static void on_play_clicked(GtkButton *button, gpointer user_data)
+{
+    GtkFileChooser *chooser = GTK_FILE_CHOOSER(user_data);
+    char *filename = gtk_file_chooser_get_filename(chooser);
+    if (filename) {
+        g_print("Clicked run: %s\n", filename);
+        OpenLuaContext(135, PrintToWindowConsole, OnStart, OnStop);
+        RunLuaScriptFile(135, filename);
+        g_free(filename);
+    } else {
+        g_print("No file selected.\n");
+    }
+}
+static void on_stop_clicked(GtkButton *button, gpointer user_data)
+{       
+    if(AnyLuaActive()) {
+        StopLuaScript(135);
+        g_print("Clicked stop and stopped a script\n");
+    }
+    else {g_print("Clicked stop but no lua script running\n");}
+
+}
+void OnStart(int hDlgAsInt)
+{
+    g_print("Started script: %d\n", hDlgAsInt);
+}
+
+void OnStop(int hDlgAsInt, bool statusOK)
+{
+    g_print("Stopped script: %d\n", hDlgAsInt);
+}
+void PrintToWindowConsole(int hDlgAsInt, const char* str)
+{
+    g_print("%s", str);
 }
 
 /////////////////////////////// SET FIRMWARE LANGUAGE //////////////////////////////////////
