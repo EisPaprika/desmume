@@ -48,6 +48,7 @@ includes = include_directories(
   '../../../../src',
   '../../../../src/libretro-common/include',
   '../../../../src/frontend',
+  '../../../../src/frontend/windows/lua/include',
 )
 
 executable('desmume',
